@@ -1,0 +1,297 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "=You are an AI-powered WhatsApp Expense Tracker assistant.\n\nYour job is to:\n- Understand user messages related to expenses, payments, bills, and summaries.\n- Extract expense details such as amount, category, date, and source (text or image).\n- Automatically save expenses using the available database tool.\n- Retrieve and summarize expenses when the user asks for daily, weekly, or monthly reports.\n- Use the date tool to determine today’s date when the user does not specify one.\n- Use the calculator/code tool to compute totals and category-wise summaries.\n- Use the OCR tool when the user sends an image or receipt.\n- Use the HTTP request tool to send responses back to WhatsApp.\n\nBehavior rules:\n- Be concise, clear, and friendly.\n- Confirm when an expense is successfully saved.\n- Ask for clarification only if amount or category is missing.\n- If multiple amounts are detected, ask the user to confirm the correct total.\n- If the message is not related to expense tracking, politely explain what you can do and provide examples.\n\nSupported examples:\n- \"Spent 250 on food\"\n- \"Paid 120 for auto\"\n- \"Show today expenses\"\n- \"This month summary\"\n- Sending a bill or payment screenshot\n\nDo NOT:\n- Engage in unrelated conversations.\n- Assume amounts or categories without evidence.\n- Claim an expense is saved unless it has actually been stored using a tool.\n\nAlways act as a reliable expense tracking assistant.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        352,
+        0
+      ],
+      "id": "8db3e9fa-b915-46d7-bc81-568c9b3b6c4a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        208,
+        160
+      ],
+      "id": "3d28c15e-07b7-4dfc-90ed-912a3e1db4f9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "NWmyVZgETKYMtkiK",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.messages[0].text.body }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        240
+      ],
+      "id": "518003d0-7a82-4d67-a1d5-44dcbb15e4c6",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1UbgvJHjrmcrXtyayDlvELjzsdYCBWMKRud6UU1MuD3s/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UbgvJHjrmcrXtyayDlvELjzsdYCBWMKRud6UU1MuD3s/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date', ``, 'string') }}",
+            "expense": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('expense', ``, 'string') }}",
+            "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('description', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "expense",
+              "displayName": "expense",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        496,
+        240
+      ],
+      "id": "e5137f41-591a-4724-a9b2-b80270bbdae3",
+      "name": "add entry",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mhtBJCbAO2CBubUc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        32
+      ],
+      "id": "68d62687-ef50-4c43-b5fe-e77392432d24",
+      "name": "WhatsApp Trigger",
+      "webhookId": "c0f7a444-c769-43e2-ba20-1a7a95383990",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "y0mc5NeTnGgGxw7L",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "937099482819907",
+        "recipientPhoneNumber": "+919791759834",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {
+          "previewUrl": false
+        }
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        32
+      ],
+      "id": "bbed159b-e169-4c01-b6e4-495a7bab0f5d",
+      "name": "Send message",
+      "webhookId": "5a90d2bf-47bc-4f59-830a-d2db5b1334a5",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "gDMfgzfH61Ki3tRe",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        304
+      ],
+      "id": "345ae28f-2543-4d5a-9a72-1c637bb98a6a",
+      "name": "Calculator Tool"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dateTimeTool",
+      "typeVersion": 2,
+      "position": [
+        752,
+        272
+      ],
+      "id": "9543d241-3e77-45c2-ab92-ef64ff173308",
+      "name": "Date & Time"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "add entry": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1
+  },
+  "versionId": "b59e0e2a-73cc-4a91-87dc-7b333ff0880e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8604c966c609a8f1fd9e20ea5ae36fdef98f372132c68e4fc6a9edc077fe469a"
+  },
+  "id": "9XeVdw2U37d7QsTH",
+  "tags": []
+}
